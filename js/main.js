@@ -119,6 +119,17 @@
         });
     }
 
+    // ----- Back to Top Button -----
+    const backToTop = document.getElementById('backToTop');
+
+    function updateBackToTop() {
+        if (window.scrollY > 400) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+    }
+
     // ----- Combined Scroll Handler (throttled) -----
     let ticking = false;
     function scrollHandler() {
@@ -272,19 +283,42 @@
         document.body.removeChild(textarea);
     }
 
-    // ----- Back to Top Button -----
-    const backToTop = document.getElementById('backToTop');
-
-    function updateBackToTop() {
-        if (window.scrollY > 400) {
-            backToTop.classList.add('visible');
-        } else {
-            backToTop.classList.remove('visible');
-        }
-    }
-
     backToTop.addEventListener('click', function () {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ----- FAQ Accordion -----
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    faqQuestions.forEach(function (question) {
+        question.addEventListener('click', function () {
+            const item = this.closest('.faq-item');
+            const isOpen = item.classList.contains('open');
+
+            // Close all other items
+            document.querySelectorAll('.faq-item.open').forEach(function (openItem) {
+                openItem.classList.remove('open');
+                openItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+            });
+
+            // Toggle current item
+            if (!isOpen) {
+                item.classList.add('open');
+                this.setAttribute('aria-expanded', 'true');
+            }
+        });
+    });
+
+    // ----- Download Toast -----
+    const toast = document.getElementById('toast');
+    const downloadBtns = document.querySelectorAll('.download-card a');
+    downloadBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            toast.textContent = '正在下载，请稍候...';
+            toast.classList.add('visible');
+            setTimeout(function () {
+                toast.classList.remove('visible');
+            }, 3000);
+        });
     });
 
 })();
