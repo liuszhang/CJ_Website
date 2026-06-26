@@ -41,10 +41,10 @@
     });
 
     // ----- Scroll Animation (Intersection Observer) -----
-    var animatedElements = document.querySelectorAll('[data-animate]');
+    const animatedElements = document.querySelectorAll('[data-animate]');
 
     if ('IntersectionObserver' in window) {
-        var observer = new IntersectionObserver(function (entries) {
+        const observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('animate-visible');
@@ -67,13 +67,13 @@
     }
 
     // ----- Feature Card Mouse Glow Effect -----
-    var featureCards = document.querySelectorAll('.feature-card');
+    const featureCards = document.querySelectorAll('.feature-card');
 
     featureCards.forEach(function (card) {
         card.addEventListener('mousemove', function (e) {
-            var rect = card.getBoundingClientRect();
-            var x = ((e.clientX - rect.left) / rect.width) * 100;
-            var y = ((e.clientY - rect.top) / rect.height) * 100;
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
             card.style.setProperty('--mouse-x', x + '%');
             card.style.setProperty('--mouse-y', y + '%');
         });
@@ -82,13 +82,13 @@
     // ----- Smooth Scroll for Anchor Links (with offset) -----
     document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
         anchor.addEventListener('click', function (e) {
-            var targetId = this.getAttribute('href');
+            const targetId = this.getAttribute('href');
             if (targetId === '#') return;
-            var target = document.querySelector(targetId);
+            const target = document.querySelector(targetId);
             if (target) {
                 e.preventDefault();
-                var offset = navbar.offsetHeight + 16;
-                var targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                const offset = navbar.offsetHeight + 16;
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
                 window.scrollTo({
                     top: targetPosition,
                     behavior: 'smooth'
@@ -98,17 +98,17 @@
     });
 
     // ----- Active Nav Link Highlight on Scroll -----
-    var sections = document.querySelectorAll('section[id]');
+    const sections = document.querySelectorAll('section[id]');
 
     function updateActiveNavLink() {
-        var scrollPos = window.scrollY + navbar.offsetHeight + 80;
+        const scrollPos = window.scrollY + navbar.offsetHeight + 80;
 
         sections.forEach(function (section) {
-            var top = section.offsetTop;
-            var bottom = top + section.offsetHeight;
+            const top = section.offsetTop;
+            const bottom = top + section.offsetHeight;
 
             if (scrollPos >= top && scrollPos < bottom) {
-                var id = section.getAttribute('id');
+                const id = section.getAttribute('id');
                 allNavLinks.forEach(function (link) {
                     link.style.color = '';
                     if (link.getAttribute('href') === '#' + id) {
@@ -120,12 +120,13 @@
     }
 
     // ----- Combined Scroll Handler (throttled) -----
-    var ticking = false;
+    let ticking = false;
     function scrollHandler() {
         if (!ticking) {
             window.requestAnimationFrame(function () {
                 onScroll();
                 updateActiveNavLink();
+                updateBackToTop();
                 ticking = false;
             });
             ticking = true;
@@ -134,29 +135,156 @@
 
     window.addEventListener('scroll', scrollHandler, { passive: true });
 
-    // ----- Initial call -----
+    // ----- Initial calls -----
     onScroll();
+    updateBackToTop();
 
     // ----- Lightbox -----
-    var lightbox = document.getElementById('lightbox');
-    var lightboxImg = document.getElementById('lightboxImg');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxClose = document.querySelector('.lightbox-close');
+    let lightboxTrigger = null;
 
-    window.openLightbox = function (src) {
+    function openLightbox(src, triggerEl) {
+        lightboxTrigger = triggerEl || null;
         lightboxImg.src = src;
         lightbox.classList.add('active');
         document.body.style.overflow = 'hidden';
-    };
+        // Focus the close button for keyboard accessibility
+        if (lightboxClose) {
+            lightboxClose.focus();
+        }
+    }
 
-    window.closeLightbox = function () {
+    function closeLightbox() {
         lightbox.classList.remove('active');
         lightboxImg.src = '';
         document.body.style.overflow = '';
-    };
+        // Return focus to the element that triggered the lightbox
+        if (lightboxTrigger) {
+            lightboxTrigger.focus();
+        }
+    }
 
+    // Click on lightbox overlay to close
+    lightbox.addEventListener('click', closeLightbox);
+
+    // Close button click & keyboard
+    lightboxClose.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeLightbox();
+    });
+
+    lightboxClose.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeLightbox();
+        }
+    });
+
+    // ESC to close
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && lightbox.classList.contains('active')) {
             closeLightbox();
         }
+    });
+
+    // Prevent clicks on lightbox image from closing the overlay
+    lightboxImg.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+    // ----- Screenshot Click Handlers (replaces inline onclick) -----
+    document.querySelectorAll('.screenshot-img').forEach(function (img) {
+        img.addEventListener('click', function () {
+            openLightbox(this.src, this);
+        });
+
+        // Keyboard support: Enter or Space to open lightbox
+        img.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openLightbox(this.src, this);
+            }
+        });
+
+        // Make images focusable and indicate they're interactive
+        img.setAttribute('tabindex', '0');
+        img.setAttribute('role', 'button');
+        img.setAttribute('aria-label', '点击放大: ' + img.alt);
+    });
+
+    // ----- Copy Button for Code Blocks -----
+    document.querySelectorAll('.code-block').forEach(function (block) {
+        const codeEl = block.querySelector('code');
+        if (!codeEl) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.textContent = '复制';
+        btn.setAttribute('aria-label', '复制代码');
+
+        btn.addEventListener('click', function () {
+            const text = codeEl.textContent;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    btn.textContent = '已复制';
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        btn.textContent = '复制';
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(function () {
+                    fallbackCopy(text, btn);
+                });
+            } else {
+                fallbackCopy(text, btn);
+            }
+        });
+
+        block.appendChild(btn);
+    });
+
+    function fallbackCopy(text, btn) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(function () {
+                btn.textContent = '复制';
+                btn.classList.remove('copied');
+            }, 2000);
+        } catch (err) {
+            btn.textContent = '失败';
+            setTimeout(function () {
+                btn.textContent = '复制';
+            }, 2000);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    // ----- Back to Top Button -----
+    const backToTop = document.getElementById('backToTop');
+
+    function updateBackToTop() {
+        if (window.scrollY > 400) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+    }
+
+    backToTop.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
 })();
